@@ -1,0 +1,210 @@
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.time.LocalDate;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import org.jfree.chart.*;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
+
+import database.conecctionSQL;
+import main.MainPanelPlaceholder;
+import main.main_window;
+
+public class ExpensesPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JComboBox<Integer> cbYear, cbTopN;
+    private JComboBox<String> cbMetric;
+    private ChartPanel pieChartPanel;
+    private main_window mainWindow;
+
+    public ExpensesPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 245, 255));
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBackground(new Color(245, 245, 255));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        add(contentPane, BorderLayout.CENTER);
+
+        addHeader();
+        addChartPanel();
+        addSidebar();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("📊 Análisis de Gastos", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 22));
+        lblTitle.setForeground(Color.WHITE);
+
+        JButton btnBack = new JButton("← Volver");
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnBack.setBackground(new Color(0, 91, 150));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFocusPainted(false);
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.addActionListener(e -> {
+            mainWindow.setMainContent(new MainPanelPlaceholder());
+        });
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnBack, BorderLayout.WEST);
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+    private void addChartPanel() {
+        JPanel container = new JPanel(new BorderLayout(10, 10));
+        container.setBackground(new Color(244, 246, 249));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        cbYear = new JComboBox<>(new Integer[]{2022, 2023, 2024, 2025});
+        cbYear.setSelectedItem(2025);
+
+        cbTopN = new JComboBox<>();
+        for (int i = 10; i <= 500; i += 10) cbTopN.addItem(i);
+        cbTopN.setSelectedItem(150);
+
+        cbMetric = new JComboBox<>(new String[]{"Unidades", "Ingresos"});
+        cbMetric.setSelectedItem("Unidades");
+
+        JButton btnActualizar = new JButton("🔄 Actualizar");
+        btnActualizar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnActualizar.setBackground(new Color(0, 91, 150));
+        btnActualizar.setForeground(Color.WHITE);
+        btnActualizar.setFocusPainted(false);
+        btnActualizar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnActualizar.setPreferredSize(new Dimension(160, 35));
+        btnActualizar.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        btnActualizar.addActionListener(e -> actualizarGraficoTarta());
+
+        btnActualizar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnActualizar.setBackground(new Color(0, 70, 120));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnActualizar.setBackground(new Color(0, 91, 150));
+            }
+        });
+
+        topPanel.add(new JLabel("Año:")); topPanel.add(cbYear);
+        topPanel.add(new JLabel("Top N:")); topPanel.add(cbTopN);
+        topPanel.add(new JLabel("Métrica:")); topPanel.add(cbMetric);
+        topPanel.add(btnActualizar);
+
+        JPanel chartsPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        chartsPanel.setBackground(new Color(244, 246, 249));
+
+        chartsPanel.add(createLineChartPanel());
+        pieChartPanel = new ChartPanel(null);
+        chartsPanel.add(pieChartPanel);
+
+        container.add(topPanel, BorderLayout.NORTH);
+        container.add(chartsPanel, BorderLayout.CENTER);
+
+        contentPane.add(container, BorderLayout.CENTER);
+
+        actualizarGraficoTarta();
+    }
+
+    private ChartPanel createLineChartPanel() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        String[] meses = {"Ene", "Feb", "Mar", "Abr", "May", "Jun"};
+
+        try (Connection conn = conecctionSQL.getConnection()) {
+            for (int mes = 1; mes <= 6; mes++) {
+                int anio = LocalDate.now().getYear();
+
+                String sqlCompras = "SELECT SUM(total) FROM compras WHERE MONTH(fecha_compra) = ? AND YEAR(fecha_compra) = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlCompras)) {
+                    ps.setInt(1, mes);
+                    ps.setInt(2, anio);
+                    ResultSet rs = ps.executeQuery();
+                    double total = (rs.next() && !rs.wasNull()) ? rs.getDouble(1) : 0.0;
+                    dataset.addValue(total, "Compras de Stock", meses[mes - 1]);
+                }
+
+                String sqlVentas = "SELECT SUM(total) FROM ventas WHERE MONTH(fecha_venta) = ? AND YEAR(fecha_venta) = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlVentas)) {
+                    ps.setInt(1, mes);
+                    ps.setInt(2, anio);
+                    ResultSet rs = ps.executeQuery();
+                    double total = (rs.next() && !rs.wasNull()) ? rs.getDouble(1) : 0.0;
+                    dataset.addValue(total, "Ventas Totales", meses[mes - 1]);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        JFreeChart chart = ChartFactory.createLineChart("Comparativa Compras vs Ventas", "Mes", "Euros (€)", dataset);
+        chart.getCategoryPlot().getRangeAxis().setLowerBound(0);
+        chart.getCategoryPlot().getRangeAxis().setStandardTickUnits(org.jfree.chart.axis.NumberAxis.createIntegerTickUnits());
+        chart.getCategoryPlot().getRenderer().setSeriesPaint(0, new Color(0, 128, 255));
+        chart.getCategoryPlot().getRenderer().setSeriesPaint(1, new Color(0, 180, 0));
+
+        return new ChartPanel(chart);
+    }
+
+    private void actualizarGraficoTarta() {
+        int año = (int) cbYear.getSelectedItem();
+        int topN = (int) cbTopN.getSelectedItem();
+        String metric = (String) cbMetric.getSelectedItem();
+
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        String campo = metric.equals("Unidades") ? "SUM(cantidad)" : "SUM(cantidad * precio)";
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT producto, " + campo + " as valor FROM ventas WHERE YEAR(fecha_venta) = ? GROUP BY producto ORDER BY valor DESC LIMIT ?")) {
+            ps.setInt(1, año);
+            ps.setInt(2, topN);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                dataset.setValue(rs.getString("producto"), rs.getDouble("valor"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        JFreeChart chart = ChartFactory.createPieChart("Productos más vendidos", dataset, true, true, false);
+        PiePlot plot = (PiePlot) chart.getPlot();
+        plot.setBackgroundPaint(new Color(244, 246, 249));
+
+        Color[] colores = {
+            new Color(0, 128, 255), new Color(108, 99, 255),
+            new Color(0, 180, 0), new Color(255, 153, 0),
+            new Color(255, 102, 102)
+        };
+        int i = 0;
+        for (Object keyObj : dataset.getKeys()) {
+            Comparable<?> key = (Comparable<?>) keyObj;
+            if (i < colores.length) {
+                plot.setSectionPaint(key, colores[i]);
+                i++;
+            }
+        }
+
+        pieChartPanel.setChart(chart);
+    }
+
+    private void addSidebar() {
+        JPanel sidebar = new JPanel(new GridLayout(1, 1, 10, 10));
+        sidebar.setBackground(new Color(245, 247, 250));
+        sidebar.setBorder(new EmptyBorder(10, 10, 10, 10));
+        contentPane.add(sidebar, BorderLayout.WEST);
+    }
+}
