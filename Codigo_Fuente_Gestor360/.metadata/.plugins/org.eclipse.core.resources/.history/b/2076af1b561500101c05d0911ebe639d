@@ -1,0 +1,332 @@
+package other_windows;
+
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+import database.conecctionSQL;
+import main.main_window;
+
+import java.awt.Color;
+import javax.swing.JButton;
+import javax.swing.JEditorPane;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import java.awt.Font;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.awt.event.ActionEvent;
+import javax.swing.SwingConstants;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.JComboBox;
+
+public class Stock extends JFrame {
+
+	private static final long serialVersionUID = 1L;
+	private JPanel contentPane;
+	private JTable table_products;
+	private JTextField txt_id;
+	private JTextField txt_name, txt_amount, txt_price, txt_description, txt_idDelete;
+    private Connection connection;
+    private DefaultTableModel model;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Stock frame = new Stock();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the frame.
+	 */
+	public Stock() {
+	    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    setBounds(100, 100, 1086, 544);
+	    setResizable(false);
+
+	    contentPane = new JPanel();
+	    contentPane.setBackground(new Color(0, 128, 255));
+	    contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+	    setContentPane(contentPane);
+	    contentPane.setLayout(null);
+
+	    // Inicializar la tabla y el modelo antes de cargar los productos
+	    table_products = new JTable();
+	    model = new DefaultTableModel(new String[]{"ID", "Nombre", "Cantidad", "Precio", "Descripción"}, 0);
+	    table_products.setModel(model);
+
+	    connectDB(); // Establecer la conexión a la base de datos
+		
+		JButton btnNewButton = new JButton("Stock");
+		btnNewButton.setFont(new Font("Tahoma", Font.BOLD, 25));
+		btnNewButton.setForeground(new Color(255, 255, 255));
+		btnNewButton.setHorizontalAlignment(SwingConstants.LEFT);
+		btnNewButton.setBackground(new Color(128, 0, 128));
+		btnNewButton.setEnabled(false);
+		btnNewButton.setBounds(0, 0, 1072, 51);
+		contentPane.add(btnNewButton);
+		
+		JButton bt_main_window = new JButton("Página principal");
+		bt_main_window.setFont(new Font("Tahoma", Font.BOLD, 10));
+		bt_main_window.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				main_window mainWin = new main_window();
+				mainWin.setVisible(true);
+				dispose(); // Cerramos la ventana del loguin al entrar a la Ventana Principal
+			}
+		});
+		bt_main_window.setForeground(new Color(255, 255, 255));
+		bt_main_window.setBackground(new Color(0, 128, 255));
+		bt_main_window.setBounds(66, 132, 163, 34);
+		contentPane.add(bt_main_window);
+		
+		JLabel lb_Gestor = new JLabel("Gestor");
+		lb_Gestor.setForeground(Color.BLACK);
+		lb_Gestor.setFont(new Font("Tahoma", Font.BOLD, 30));
+		lb_Gestor.setBounds(66, 55, 163, 34);
+		contentPane.add(lb_Gestor);
+		
+		JLabel lb_360 = new JLabel("360");
+		lb_360.setForeground(new Color(128, 0, 128));
+		lb_360.setFont(new Font("Tahoma", Font.BOLD, 30));
+		lb_360.setBounds(170, 55, 59, 34);
+		contentPane.add(lb_360);
+		
+		JLabel lb_fastNavigation = new JLabel("Navegación Rápida");
+		lb_fastNavigation.setFont(new Font("Tahoma", Font.BOLD, 15));
+		lb_fastNavigation.setBounds(66, 99, 163, 23);
+		contentPane.add(lb_fastNavigation);
+		
+		JButton bt_pucharse_sales = new JButton("Compras y Ventas");
+		bt_pucharse_sales.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Purchases_Sales psWin = new Purchases_Sales();
+				psWin.setVisible(true);
+				dispose();
+			}
+		});
+		bt_pucharse_sales.setFont(new Font("Tahoma", Font.BOLD, 10));
+		bt_pucharse_sales.setForeground(new Color(255, 255, 255));
+		bt_pucharse_sales.setBackground(new Color(0, 128, 255));
+		bt_pucharse_sales.setBounds(66, 176, 163, 34);
+		contentPane.add(bt_pucharse_sales);
+		
+		JButton bt_expenses_orders = new JButton("Gastos y Pedidos");
+		bt_expenses_orders.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Expenses_Orders eoWin = new Expenses_Orders();
+				eoWin.setVisible(true);
+				dispose();
+			}
+		});
+		bt_expenses_orders.setFont(new Font("Tahoma", Font.BOLD, 10));
+		bt_expenses_orders.setForeground(new Color(255, 255, 255));
+		bt_expenses_orders.setBackground(new Color(0, 128, 255));
+		bt_expenses_orders.setBounds(66, 220, 163, 34);
+		contentPane.add(bt_expenses_orders);
+		
+		JButton bt_reports = new JButton("Reportes");
+		bt_reports.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Reports reportsWin = new Reports();
+				reportsWin.setVisible(true);
+				dispose();
+			}
+		});
+		bt_reports.setFont(new Font("Tahoma", Font.BOLD, 10));
+		bt_reports.setForeground(new Color(255, 255, 255));
+		bt_reports.setBackground(new Color(0, 128, 255));
+		bt_reports.setBounds(66, 264, 163, 34);
+		contentPane.add(bt_reports);
+		
+		JButton bt_clients_providers = new JButton("Clientes y Proveedores");
+		bt_clients_providers.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Clients_Providers cpWin = new Clients_Providers();
+				cpWin.setVisible(true);
+				dispose();
+			}
+		});
+		bt_clients_providers.setFont(new Font("Tahoma", Font.BOLD, 10));
+		bt_clients_providers.setForeground(new Color(255, 255, 255));
+		bt_clients_providers.setBackground(new Color(0, 128, 255));
+		bt_clients_providers.setBounds(66, 308, 163, 34);
+		contentPane.add(bt_clients_providers);
+		
+
+		JEditorPane editorPane = new JEditorPane();
+		editorPane.setEnabled(false);
+		editorPane.setEditable(false);
+		editorPane.setBounds(40, 41, 213, 322);
+		contentPane.add(editorPane);
+		
+		//------------------------------------------------
+		// Configuraciones de los campos de texto
+		//------------------------------------------------
+		
+        //Creamos los campos de texto
+        txt_id = new JTextField();
+        txt_name = new JTextField();
+        txt_amount = new JTextField();
+        txt_price = new JTextField();
+        txt_description = new JTextField();
+        txt_idDelete = new JTextField();
+		
+		//Configuración del campo de texto nombre
+		txt_name.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_name.setColumns(10);
+		txt_name.setBounds(409, 408, 106, 34);
+		contentPane.add(txt_name);
+		
+		//Configuración del campo de texto cantidad
+		txt_amount.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_amount.setColumns(10);
+		txt_amount.setBounds(525, 406, 106, 34);
+		contentPane.add(txt_amount);
+		
+		//Configuración del campo de texto precio
+		txt_price.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_price.setColumns(10);
+		txt_price.setBounds(637, 406, 106, 34);
+		contentPane.add(txt_price);
+		
+		//Configuración del campo de texto descripción
+		txt_description.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_description.setColumns(10);
+		txt_description.setBounds(753, 406, 106, 34);
+		contentPane.add(txt_description);
+		
+		//Configuración del campo de texto ID
+		txt_id.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_id.setBounds(293, 408, 106, 34);
+		contentPane.add(txt_id);
+		txt_id.setColumns(10);
+		
+		//Configuración del campo de texto ID (eliminar)
+		txt_idDelete.setFont(new Font("Tahoma", Font.BOLD, 12));
+		txt_idDelete.setColumns(10);
+		txt_idDelete.setBounds(358, 75, 141, 34);
+		contentPane.add(txt_idDelete);
+				
+		JComboBox cb_filterOptions = new JComboBox();
+		cb_filterOptions.setToolTipText("Hola");
+		cb_filterOptions.setBounds(711, 75, 118, 34);
+		contentPane.add(cb_filterOptions);
+		
+		//-----------------------------------------
+		// Tabla donde van a mostrar los datos y botones para las acciones
+		//-----------------------------------------
+		
+		table_products = new JTable();
+        model = new DefaultTableModel(new String[]{"ID", "Nombre", "Cantidad", "Precio", "Descripción"}, 0);
+        table_products.setModel(model);
+        JScrollPane scrollPane = new JScrollPane(table_products);
+        scrollPane.setBounds(283, 119, 732, 277);
+        contentPane.add(scrollPane);
+		
+        //Botón para agregar el producto
+		JButton bt_add = new JButton("Agregar");
+		bt_add.addActionListener(e -> addProduct());
+		bt_add.setFont(new Font("Tahoma", Font.BOLD, 15));
+		bt_add.setBounds(869, 406, 141, 34);
+		contentPane.add(bt_add);
+		
+		//Botón para eliminar el producto
+		JButton bt_delete = new JButton("Eliminar");
+		bt_delete.addActionListener(e -> deleteProduct());
+		bt_delete.setFont(new Font("Tahoma", Font.BOLD, 15));
+		bt_delete.setBounds(510, 75, 191, 34);
+		contentPane.add(bt_delete);
+		
+		JEditorPane editorPane_1 = new JEditorPane();
+		editorPane_1.setEnabled(false);
+		editorPane_1.setEditable(false);
+		editorPane_1.setBounds(283, 401, 732, 45);
+		contentPane.add(editorPane_1);
+		
+		JLabel lb_idDelete = new JLabel("ID:");
+		lb_idDelete.setFont(new Font("Tahoma", Font.BOLD, 22));
+		lb_idDelete.setBounds(305, 74, 43, 35);
+		contentPane.add(lb_idDelete);
+		
+
+		
+	}
+	
+	// MÉTODOS DE LA BASE DE DATOS
+	private void connectDB() {
+	    connection = conecctionSQL.getConnection();
+	}
+
+	
+	// Cargar los productos
+    private void loadProducts() {
+        model.setRowCount(0);
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM productos")) {
+            while (rs.next()) {
+                model.addRow(new Object[]{rs.getInt("id"), rs.getString("nombre"), rs.getInt("cantidad"), rs.getDouble("precio"), rs.getString("descripcion")});
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        
+    }
+    
+    // Añadir los productos
+    private void addProduct() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("INSERT INTO productos (id, nombre, cantidad, precio, descripcion) VALUES (?, ?, ?, ?, ?)") ) {
+            
+            ps.setInt(1, Integer.parseInt(txt_id.getText()));
+            ps.setString(2, txt_name.getText());
+            ps.setInt(3, Integer.parseInt(txt_amount.getText()));
+            ps.setDouble(4, Double.parseDouble(txt_price.getText()));
+            ps.setString(5, txt_description.getText());
+            ps.executeUpdate();
+            
+            JOptionPane.showMessageDialog(this, "Producto agregado exitosamente");
+            loadProducts();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // Eliminar los productos
+    private void deleteProduct() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("DELETE FROM productos WHERE id = ?")) {
+            
+            ps.setInt(1, Integer.parseInt(txt_idDelete.getText()));
+            ps.executeUpdate();
+            
+            JOptionPane.showMessageDialog(this, "Producto eliminado exitosamente");
+            loadProducts();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}

@@ -1,0 +1,157 @@
+
+package other_windows;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import database.conecctionSQL;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class SalesPanel extends JPanel {
+
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField txt_Search, txt_ID, txt_Producto, txt_Cantidad, txt_PrecioUnitario, txt_Fecha;
+
+    public SalesPanel() {
+        setLayout(new BorderLayout(10, 10));
+        setBackground(Color.WHITE);
+        setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setBackground(Color.WHITE);
+
+        txt_Search = new JTextField(20);
+        JButton btnSearch = new JButton("🔍 Buscar");
+        btnSearch.addActionListener(e -> searchVenta());
+
+        topPanel.add(new JLabel("Buscar por producto:"));
+        topPanel.add(txt_Search);
+        topPanel.add(btnSearch);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        model = new DefaultTableModel();
+        model.setColumnIdentifiers(new Object[]{"ID", "Producto", "Cantidad", "Precio Unitario", "Fecha"});
+        table = new JTable(model);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
+
+        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10));
+        formPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
+        formPanel.setBackground(Color.WHITE);
+
+        txt_ID = new JTextField();
+        txt_Producto = new JTextField();
+        txt_Cantidad = new JTextField();
+        txt_PrecioUnitario = new JTextField();
+        txt_Fecha = new JTextField();
+
+        formPanel.add(new JLabel("ID:"));
+        formPanel.add(txt_ID);
+        formPanel.add(new JLabel("Producto:"));
+        formPanel.add(txt_Producto);
+        formPanel.add(new JLabel("Cantidad:"));
+        formPanel.add(txt_Cantidad);
+        formPanel.add(new JLabel("Precio Unitario:"));
+        formPanel.add(txt_PrecioUnitario);
+        formPanel.add(new JLabel("Fecha (YYYY-MM-DD):"));
+        formPanel.add(txt_Fecha);
+
+        JButton btnModificar = new JButton("✏ Modificar");
+        btnModificar.addActionListener(e -> modificarVenta());
+
+        formPanel.add(btnModificar);
+        add(formPanel, BorderLayout.SOUTH);
+
+        cargarVentas();
+    }
+
+    private void cargarVentas() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM ventas")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_venta"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio_unitario"),
+                    rs.getDate("fecha_venta")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar ventas", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void searchVenta() {
+        String producto = txt_Search.getText().trim();
+        model.setRowCount(0);
+        if (producto.isEmpty()) {
+            cargarVentas();
+            return;
+        }
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT * FROM ventas WHERE producto LIKE ?")) {
+
+            ps.setString(1, "%" + producto + "%");
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_venta"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio_unitario"),
+                    rs.getDate("fecha_venta")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error en la búsqueda", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void modificarVenta() {
+        try {
+            int id = Integer.parseInt(txt_ID.getText().trim());
+            String producto = txt_Producto.getText().trim();
+            int cantidad = Integer.parseInt(txt_Cantidad.getText().trim());
+            double precio = Double.parseDouble(txt_PrecioUnitario.getText().trim());
+            String fecha = txt_Fecha.getText().trim();
+
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE ventas SET producto=?, cantidad=?, precio_unitario=?, fecha_venta=? WHERE id_venta=?")) {
+
+                ps.setString(1, producto);
+                ps.setInt(2, cantidad);
+                ps.setDouble(3, precio);
+                ps.setString(4, fecha);
+                ps.setInt(5, id);
+
+                int filas = ps.executeUpdate();
+                if (filas > 0) {
+                    JOptionPane.showMessageDialog(this, "Venta actualizada correctamente");
+                    cargarVentas();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró la venta con ese ID");
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Datos numéricos inválidos", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al actualizar", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

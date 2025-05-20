@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="javax.swing.JOptionPane"/>
+    <fullyQualifiedTypeName name="java.awt.event.KeyAdapter"/>
+    <fullyQualifiedTypeName name="java.awt.event.KeyEvent"/>
+    <fullyQualifiedTypeName name="other_windows.Stock"/>
+    <fullyQualifiedTypeName name="other_windows.Purchases_Sales"/>
+    <fullyQualifiedTypeName name="other_windows.Expenses_Orders"/>
+    <fullyQualifiedTypeName name="other_windows.Reports"/>
+    <fullyQualifiedTypeName name="other_windows.Clients_Providers"/>
+    <fullyQualifiedTypeName name="java.awt.Window"/>
+    <fullyQualifiedTypeName name="other_windows.Purchases"/>
+    <fullyQualifiedTypeName name="java.awt.event.FocusAdapter"/>
+    <fullyQualifiedTypeName name="java.awt.event.FocusEvent"/>
+    <fullyQualifiedTypeName name="main.login_window"/>
+    <fullyQualifiedTypeName name="java.awt.event.MouseAdapter"/>
+    <fullyQualifiedTypeName name="java.awt.event.MouseEvent"/>
+    <fullyQualifiedTypeName name="javax.swing.border.AbstractBorder"/>
+    <fullyQualifiedTypeName name="main.main_window"/>
+    <fullyQualifiedTypeName name="other_windows.PurchasesPanel"/>
+    <fullyQualifiedTypeName name="other_windows.ReportsPanel"/>
+    <fullyQualifiedTypeName name="other_windows.ExpensesPanel"/>
+    <fullyQualifiedTypeName name="other_windows.StockPanel"/>
+    <fullyQualifiedTypeName name="other_windows.Settings"/>
+    <fullyQualifiedTypeName name="main.MainPanelPlaceholder"/>
+    <fullyQualifiedTypeName name="other_windows.ClientsPanel"/>
+    <fullyQualifiedTypeName name="other_windows.ProvidersPanel"/>
+    <fullyQualifiedTypeName name="java.sql.ResultSet"/>
+    <fullyQualifiedTypeName name="java.awt.Color"/>
+    <fullyQualifiedTypeName name="Utils.ThemeManager"/>
+    <fullyQualifiedTypeName name="java.util.prefs.Preferences"/>
+    <fullyQualifiedTypeName name="javax.swing.border.EmptyBorder"/>
+</qualifiedTypeNameHistroy>

@@ -1,0 +1,323 @@
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
+import database.conecctionSQL;
+import main.main_window;
+
+public class Sales extends JFrame {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTable table_sales;
+    private JTextField txt_ID_Delete, txt_Add_ID, txt_AddProduct, txt_AddAmount, txt_AddPriceUnit, txt_AddDate;
+    private DefaultTableModel model;
+
+    public Sales(boolean maximized) {
+        setTitle("Gestor360 - Ventas");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 1086, 600);
+        if (maximized) {
+            setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
+        setLocationRelativeTo(null);
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        contentPane.setBackground(new Color(245, 245, 255));
+        setContentPane(contentPane);
+
+        addHeader();
+        addSidebar();
+        addCenterPanel();
+        addFooter();
+
+        loadSales();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("📦 Gestión de Ventas", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 24));
+        lblTitle.setForeground(Color.WHITE);
+
+        JButton btnBack = new JButton("← Volver");
+        btnBack.setFocusPainted(false);
+        btnBack.setBackground(new Color(108, 99, 255));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.addActionListener(e -> {
+            new main_window(getExtendedState() == JFrame.MAXIMIZED_BOTH).setVisible(true);
+            dispose();
+        });
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnBack, BorderLayout.WEST);
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+    private void addCenterPanel() {
+        JPanel center = new JPanel(new BorderLayout(10, 10));
+        center.setBackground(new Color(244, 246, 249));
+
+        // Tabla
+        model = new DefaultTableModel(new String[]{"ID", "Producto", "Cantidad", "Precio Unit.", "Total", "Fecha"}, 0);
+        table_sales = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table_sales);
+        center.add(scrollPane, BorderLayout.CENTER);
+
+        // Panel de campos
+        JPanel fieldsPanel = new JPanel(new GridBagLayout());
+        fieldsPanel.setBackground(new Color(244, 246, 249));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        String[] labels = {"ID:", "Producto:", "Cantidad:", "Precio Unitario (€):", "Fecha (yyyy-mm-dd):"};
+        JTextField[] fields = {
+            txt_Add_ID = new JTextField(),
+            txt_AddProduct = new JTextField(),
+            txt_AddAmount = new JTextField(),
+            txt_AddPriceUnit = new JTextField(),
+            txt_AddDate = new JTextField()
+        };
+
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridx = 0;
+            gbc.gridy = i;
+            gbc.weightx = 0.3;
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            fieldsPanel.add(lbl, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.7;
+            fields[i].setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            fields[i].setPreferredSize(new Dimension(200, 30));
+            fieldsPanel.add(fields[i], gbc);
+        }
+
+        // Botón añadir
+        JButton btnAdd = new JButton("➕ Añadir Venta");
+        btnAdd.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnAdd.setBackground(new Color(0, 128, 255));
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAdd.setFocusPainted(false);
+        btnAdd.setPreferredSize(new Dimension(180, 35));
+        btnAdd.addActionListener(e -> addSale());
+
+        gbc.gridx = 0;
+        gbc.gridy = labels.length;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        fieldsPanel.add(btnAdd, gbc);
+
+        // Texto eliminar
+        JLabel lblEliminar = new JLabel("Eliminar venta por ID:");
+        lblEliminar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        gbc.gridy = labels.length + 1;
+        fieldsPanel.add(lblEliminar, gbc);
+
+        txt_ID_Delete = new JTextField();
+        txt_ID_Delete.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txt_ID_Delete.setPreferredSize(new Dimension(100, 30));
+        gbc.gridy = labels.length + 2;
+        fieldsPanel.add(txt_ID_Delete, gbc);
+
+        JButton btnDelete = new JButton("🗑 Eliminar");
+        btnDelete.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnDelete.setBackground(new Color(200, 0, 0));
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnDelete.setFocusPainted(false);
+        btnDelete.setPreferredSize(new Dimension(150, 35));
+        btnDelete.addActionListener(e -> deleteSale());
+        gbc.gridy = labels.length + 3;
+        fieldsPanel.add(btnDelete, gbc);
+
+        center.add(fieldsPanel, BorderLayout.EAST);
+        contentPane.add(center, BorderLayout.CENTER);
+    }
+
+    private void addSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new GridLayout(6, 1, 10, 10));
+        sidebar.setBackground(new Color(245, 247, 250));
+        sidebar.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        sidebar.add(createSidebarButton("📦 Stock", () -> openWindow(new Stock(getExtendedState() == JFrame.MAXIMIZED_BOTH))));
+        sidebar.add(createSidebarButton("💰 Gastos", () -> openWindow(new Expenses(getExtendedState() == JFrame.MAXIMIZED_BOTH))));
+        sidebar.add(createSidebarButton("📊 Reportes", () -> openWindow(new Reports(getExtendedState() == JFrame.MAXIMIZED_BOTH))));
+        sidebar.add(createSidebarButton("👥 Clientes", () -> openWindow(new Clients(getExtendedState() == JFrame.MAXIMIZED_BOTH))));
+        sidebar.add(createSidebarButton("🛒 Compras", () -> openWindow(new Purchases(getExtendedState() == JFrame.MAXIMIZED_BOTH))));
+
+
+        contentPane.add(sidebar, BorderLayout.WEST);
+    }
+
+    private void addFooter() {
+        JPanel footerPanel = new JPanel(new BorderLayout());
+        footerPanel.setBackground(new Color(230, 230, 230));
+        footerPanel.setBorder(new EmptyBorder(8, 15, 8, 15));
+
+        JLabel lblUser = new JLabel("👤 Usuario conectado: admin");
+        lblUser.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+
+        JLabel lblFechaHora = new JLabel();
+        lblFechaHora.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+        lblFechaHora.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        Timer timer = new Timer(1000, e -> {
+            lblFechaHora.setText("📅 " + java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm:ss")));
+        });
+        timer.start();
+
+        footerPanel.add(lblUser, BorderLayout.WEST);
+        footerPanel.add(lblFechaHora, BorderLayout.EAST);
+
+        contentPane.add(footerPanel, BorderLayout.SOUTH);
+    }
+
+    private JButton createSidebarButton(String text, Runnable action) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI Emoji", Font.BOLD, 17)); // Aumentamos ligeramente la fuente
+        button.setPreferredSize(new Dimension(200, 48)); // Ajustamos tamaño del botón
+        button.setBackground(new Color(0, 91, 150));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new RoundedBorder(12));
+        button.addActionListener(e -> action.run());
+
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(new Color(0, 70, 120));
+            }
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(new Color(0, 91, 150));
+            }
+        });
+
+        return button;
+    }
+
+
+    private void openWindow(JFrame frame) {
+        frame.setVisible(true);
+        dispose();
+    }
+
+    private void loadSales() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM ventas")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_venta"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio"),
+                    rs.getDouble("total"),
+                    rs.getString("fecha_venta")
+                });
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addSale() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("INSERT INTO ventas (id_venta, producto, cantidad, precio, fecha_venta) VALUES (?, ?, ?, ?, ?)")) {
+
+            int id = Integer.parseInt(txt_Add_ID.getText().trim());
+            int cantidad = Integer.parseInt(txt_AddAmount.getText().trim());
+            double precioUnitario = Double.parseDouble(txt_AddPriceUnit.getText().trim());
+
+            ps.setInt(1, id);
+            ps.setString(2, txt_AddProduct.getText());
+            ps.setInt(3, cantidad);
+            ps.setDouble(4, precioUnitario);
+            ps.setDate(5, java.sql.Date.valueOf(txt_AddDate.getText()));
+
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Venta registrada exitosamente");
+            loadSales();
+            clearFields();
+
+        } catch (SQLException e) {
+            if (e.getMessage().contains("Duplicate entry")) {
+                JOptionPane.showMessageDialog(this, "Ese ID ya está en uso. Por favor, usa uno diferente.", "ID duplicado", JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al guardar en base de datos", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Verifica los campos numéricos. ID, Cantidad y Precio deben ser válidos.", "Error de entrada", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void deleteSale() {
+        try {
+            int id = Integer.parseInt(txt_ID_Delete.getText().trim());
+
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("DELETE FROM ventas WHERE id_venta = ?")) {
+
+                ps.setInt(1, id);
+                int rows = ps.executeUpdate();
+
+                if (rows > 0) {
+                    JOptionPane.showMessageDialog(this, "Venta eliminada correctamente.");
+                    loadSales();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró ninguna venta con ese ID.", "No encontrado", JOptionPane.WARNING_MESSAGE);
+                }
+
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Introduce un número válido para eliminar por ID.", "Error de formato", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error eliminando la venta.", "Error de base de datos", JOptionPane.ERROR_MESSAGE);
+        }
+
+        clearFields();
+    }
+
+    private void clearFields() {
+        txt_Add_ID.setText("");
+        txt_AddProduct.setText("");
+        txt_AddAmount.setText("");
+        txt_AddPriceUnit.setText("");
+        txt_AddDate.setText("");
+        txt_ID_Delete.setText("");
+    }
+
+    private static class RoundedBorder extends AbstractBorder {
+        private final int radius;
+
+        public RoundedBorder(int radius) {
+            this.radius = radius;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.GRAY);
+            g2.drawRoundRect(x, y, width - 1, height - 1, radius, radius);
+        }
+    }
+}

@@ -1,0 +1,7 @@
+------
+ID: 1
+FECHA: 2025-05-16 17:27:12.0
+ASUNTO: Alta de usuario Diego
+DESCRIPCIÓN: Porfavor se pide que se haga un usuario llamado diego para la base de datos
+CATEGORÍA: General
+URGENCIA: Crítica

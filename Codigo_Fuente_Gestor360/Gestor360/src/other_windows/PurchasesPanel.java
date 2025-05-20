@@ -1,0 +1,464 @@
+
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
+
+import database.conecctionSQL;
+import main.MainPanelPlaceholder;
+import main.main_window;
+
+public class PurchasesPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTable table_purchases;
+    private DefaultTableModel model;
+    private JTextField txt_ID_Delete, txt_Add_ID, txt_AddProduct, txt_AddAmount, txt_AddPriceUnit, txt_AddDatePurchase, txt_Search;
+    private main_window mainWindow;
+
+    public PurchasesPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 245, 255));
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBackground(new Color(245, 245, 255));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        add(contentPane, BorderLayout.CENTER);
+
+        addHeader();
+        addCenterPanel();
+        loadPurchases();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("🛒 Gestión de Compras", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 24));
+        lblTitle.setForeground(Color.WHITE);
+
+        JButton btnBack = new JButton("← Volver");
+        btnBack.setFocusPainted(false);
+        btnBack.setBackground(new Color(0, 91, 150));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.addActionListener(e -> mainWindow.setMainContent(new MainPanelPlaceholder()));
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnBack, BorderLayout.WEST);
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+    private void addCenterPanel() {
+        JPanel center = new JPanel(new BorderLayout(10, 10));
+        center.setBackground(new Color(244, 246, 249));
+
+        model = new DefaultTableModel(new String[]{"ID", "Producto", "Cantidad", "P/U (€)", "Total (€)", "Fecha"}, 0);
+        table_purchases = new JTable(model);
+        table_purchases.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && table_purchases.getSelectedRow() != -1) {
+                int fila = table_purchases.getSelectedRow();
+                txt_Add_ID.setText(model.getValueAt(fila, 0).toString());
+                txt_AddProduct.setText(model.getValueAt(fila, 1).toString());
+                txt_AddAmount.setText(model.getValueAt(fila, 2).toString());
+                txt_AddPriceUnit.setText(model.getValueAt(fila, 3).toString());
+                txt_AddDatePurchase.setText(model.getValueAt(fila, 5).toString());
+            }
+        });
+        JScrollPane scrollPane = new JScrollPane(table_purchases);
+        center.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel fieldsPanel = new JPanel(new GridBagLayout());
+        fieldsPanel.setBackground(new Color(244, 246, 249));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        String[] labels = {"ID:", "Producto:", "Cantidad:", "Precio/U:", "Fecha:"};
+        JTextField[] fields = {
+            txt_Add_ID = new JTextField(),
+            txt_AddProduct = new JTextField(),
+            txt_AddAmount = new JTextField(),
+            txt_AddPriceUnit = new JTextField(),
+            txt_AddDatePurchase = new JTextField()
+        };
+
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridx = 0;
+            gbc.gridy = i;
+            gbc.weightx = 0.2;
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            fieldsPanel.add(lbl, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.8;
+            fields[i].setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            fields[i].setPreferredSize(new Dimension(200, 30));
+            fieldsPanel.add(fields[i], gbc);
+        }
+
+        gbc.gridx = 0;
+        gbc.gridy = labels.length;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        JButton btnAdd = new JButton("➕ Añadir Compra");
+        btnAdd.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnAdd.setBackground(new Color(0, 128, 255));
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.setFocusPainted(false);
+        btnAdd.setBorderPainted(false);
+        btnAdd.setContentAreaFilled(true);
+        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAdd.setPreferredSize(new Dimension(180, 35));
+        btnAdd.addActionListener(e -> addPurchase());
+        btnAdd.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnAdd.setBackground(new Color(0, 110, 220));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnAdd.setBackground(new Color(0, 128, 255));
+            }
+        });
+        fieldsPanel.add(btnAdd, gbc);
+
+        gbc.gridy++;
+        JButton btnDelete = new JButton("🗑 Eliminar");
+        btnDelete.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnDelete.setBackground(new Color(200, 0, 0));
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setFocusPainted(false);
+        btnDelete.setBorderPainted(false);
+        btnDelete.setContentAreaFilled(true);
+        btnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnDelete.setPreferredSize(new Dimension(150, 35));
+        btnDelete.addActionListener(e -> deletePurchase());
+        btnDelete.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnDelete.setBackground(new Color(160, 0, 0));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnDelete.setBackground(new Color(200, 0, 0));
+            }
+        });
+        fieldsPanel.add(btnDelete, gbc);
+
+        gbc.gridy++;
+        JButton btnClear = new JButton("🧹 Limpiar campos");
+        btnClear.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnClear.setBackground(new Color(120, 120, 120));
+        btnClear.setForeground(Color.WHITE);
+        btnClear.setFocusPainted(false);
+        btnClear.setBorderPainted(false);
+        btnClear.setContentAreaFilled(true);
+        btnClear.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnClear.setPreferredSize(new Dimension(150, 35));
+        btnClear.addActionListener(e -> clearFields());
+        btnClear.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnClear.setBackground(new Color(90, 90, 90));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnClear.setBackground(new Color(120, 120, 120));
+            }
+        });
+        fieldsPanel.add(btnClear, gbc);
+
+        gbc.gridy++;
+        JLabel lblBuscar = new JLabel("Buscar por ID o Producto:");
+        lblBuscar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        fieldsPanel.add(lblBuscar, gbc);
+
+        gbc.gridy++;
+        txt_Search = new JTextField();
+        txt_Search.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txt_Search.setPreferredSize(new Dimension(100, 30));
+        fieldsPanel.add(txt_Search, gbc);
+
+        gbc.gridy++;
+        JButton btnBuscar = new JButton("🔍 Buscar");
+        btnBuscar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnBuscar.setBackground(new Color(0, 91, 150));
+        btnBuscar.setForeground(Color.WHITE);
+        btnBuscar.setFocusPainted(false);
+        btnBuscar.setBorderPainted(false);
+        btnBuscar.setContentAreaFilled(true);
+        btnBuscar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBuscar.setPreferredSize(new Dimension(150, 35));
+        btnBuscar.addActionListener(e -> buscarCompra());
+        btnBuscar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnBuscar.setBackground(new Color(0, 70, 120));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnBuscar.setBackground(new Color(0, 91, 150));
+            }
+        });
+        fieldsPanel.add(btnBuscar, gbc);
+
+        gbc.gridy++;
+        JButton btnModificar = new JButton("✏ Modificar");
+        btnModificar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnModificar.setBackground(new Color(0, 128, 0));
+        btnModificar.setForeground(Color.WHITE);
+        btnModificar.setFocusPainted(false);
+        btnModificar.setBorderPainted(false);
+        btnModificar.setContentAreaFilled(true);
+        btnModificar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnModificar.setPreferredSize(new Dimension(150, 35));
+        btnModificar.addActionListener(e -> modificarCompra());
+        btnModificar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnModificar.setBackground(new Color(0, 100, 0));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnModificar.setBackground(new Color(0, 128, 0));
+            }
+        });
+        fieldsPanel.add(btnModificar, gbc);
+
+        gbc.gridy++;
+        JButton btnIrVentas = new JButton("📈 Ir a Ventas");
+        btnIrVentas.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnIrVentas.setBackground(new Color(0, 91, 150));
+        btnIrVentas.setForeground(Color.WHITE);
+        btnIrVentas.setFocusPainted(false);
+        btnIrVentas.setBorderPainted(false);
+        btnIrVentas.setContentAreaFilled(true);
+        btnIrVentas.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnIrVentas.setPreferredSize(new Dimension(180, 35));
+        btnIrVentas.addActionListener(e -> mainWindow.setMainContent(new SalesPanel(mainWindow)));
+        btnIrVentas.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnIrVentas.setBackground(new Color(0, 70, 120));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                btnIrVentas.setBackground(new Color(0, 91, 150));
+            }
+        });
+        fieldsPanel.add(btnIrVentas, gbc);
+
+        center.add(fieldsPanel, BorderLayout.EAST);
+        contentPane.add(center, BorderLayout.CENTER);
+    }
+
+
+    private void loadPurchases() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM compras")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_compra"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio"),
+                    rs.getDouble("total"),
+                    rs.getString("fecha_compra")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addPurchase() {
+        String idText = txt_Add_ID.getText().trim();
+        String producto = txt_AddProduct.getText().trim();
+        String cantidadText = txt_AddAmount.getText().trim();
+        String precioText = txt_AddPriceUnit.getText().trim();
+        String fecha = txt_AddDatePurchase.getText().trim();
+
+        if (idText.isEmpty() || producto.isEmpty() || cantidadText.isEmpty() || precioText.isEmpty() || fecha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, rellena todos los campos.", "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int id, cantidad;
+        double precio;
+        try {
+            id = Integer.parseInt(idText);
+            cantidad = Integer.parseInt(cantidadText);
+            precio = Double.parseDouble(precioText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Los campos ID, Cantidad y Precio deben ser numéricos válidos.", "Error de formato", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!fecha.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            JOptionPane.showMessageDialog(this, "La fecha debe tener el formato correcto: YYYY-MM-DD", "Formato de fecha inválido", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        double total = cantidad * precio;
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("INSERT INTO compras (id_compra, producto, cantidad, precio, total, fecha_compra) VALUES (?, ?, ?, ?, ?, ?)")) {
+
+            ps.setInt(1, id);
+            ps.setString(2, producto);
+            ps.setInt(3, cantidad);
+            ps.setDouble(4, precio);
+            ps.setDouble(5, total);
+            ps.setString(6, fecha);
+
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Compra agregada exitosamente");
+            loadPurchases();
+            clearFields();
+
+        } catch (SQLIntegrityConstraintViolationException e) {
+            JOptionPane.showMessageDialog(this, "El ID ya existe en la base de datos. Usa un ID único.", "ID duplicado", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al agregar la compra en la base de datos:\n" + e.getMessage(), "Error de SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
+    private void deletePurchase() {
+        int selectedRow = table_purchases.getSelectedRow();
+        if (selectedRow != -1) {
+            int id = (int) model.getValueAt(selectedRow, 0);
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("DELETE FROM compras WHERE id_compra = ?")) {
+                ps.setInt(1, id);
+                ps.executeUpdate();
+                loadPurchases();
+                clearFields();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al eliminar", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Selecciona una fila para eliminar", "Aviso", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void buscarCompra() {
+        String filtro = txt_Search.getText().trim();
+        model.setRowCount(0);
+
+        if (filtro.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Introduce un ID o nombre de producto para buscar.", "Campo de búsqueda vacío", JOptionPane.WARNING_MESSAGE);
+            loadPurchases();
+            return;
+        }
+
+        String sql = "SELECT * FROM compras WHERE producto LIKE ? OR id_compra LIKE ?";
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + filtro + "%");
+            ps.setString(2, "%" + filtro + "%");
+            ResultSet rs = ps.executeQuery();
+
+            boolean hayResultados = false;
+
+            while (rs.next()) {
+                hayResultados = true;
+                model.addRow(new Object[] {
+                    rs.getInt("id_compra"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio"),
+                    rs.getDouble("total"),
+                    rs.getString("fecha_compra")
+                });
+            }
+
+            if (!hayResultados) {
+                JOptionPane.showMessageDialog(this, "No se encontraron resultados para: " + filtro, "Sin coincidencias", JOptionPane.INFORMATION_MESSAGE);
+                loadPurchases();
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al realizar la búsqueda en la base de datos:\n" + e.getMessage(), "Error de SQL", JOptionPane.ERROR_MESSAGE);
+            loadPurchases();
+        }
+    }
+
+
+    private void modificarCompra() {
+        String idText = txt_Add_ID.getText().trim();
+        String producto = txt_AddProduct.getText().trim();
+        String cantidadText = txt_AddAmount.getText().trim();
+        String precioText = txt_AddPriceUnit.getText().trim();
+        String fecha = txt_AddDatePurchase.getText().trim();
+
+        if (idText.isEmpty() || producto.isEmpty() || cantidadText.isEmpty() || precioText.isEmpty() || fecha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, rellena todos los campos.", "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int id, cantidad;
+        double precio;
+        try {
+            id = Integer.parseInt(idText);
+            cantidad = Integer.parseInt(cantidadText);
+            precio = Double.parseDouble(precioText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Los campos ID, Cantidad y Precio deben ser numéricos válidos.", "Error de formato", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!fecha.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            JOptionPane.showMessageDialog(this, "La fecha debe tener el formato correcto: YYYY-MM-DD", "Formato de fecha inválido", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        double total = cantidad * precio;
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("UPDATE compras SET producto=?, cantidad=?, precio=?, total=?, fecha_compra=? WHERE id_compra=?")) {
+
+            ps.setString(1, producto);
+            ps.setInt(2, cantidad);
+            ps.setDouble(3, precio);
+            ps.setDouble(4, total);
+            ps.setString(5, fecha);
+            ps.setInt(6, id);
+
+            int filas = ps.executeUpdate();
+            if (filas > 0) {
+                JOptionPane.showMessageDialog(this, "Compra modificada correctamente.");
+                loadPurchases();
+                clearFields();
+            } else {
+                JOptionPane.showMessageDialog(this, "No se encontró ninguna compra con ese ID.", "ID no encontrado", JOptionPane.WARNING_MESSAGE);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al modificar la compra en la base de datos:\n" + e.getMessage(), "Error de SQL", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
+    private void clearFields() {
+        try { if (txt_Add_ID != null) txt_Add_ID.setText(""); } catch (Exception ignored) {}
+        try { if (txt_AddProduct != null) txt_AddProduct.setText(""); } catch (Exception ignored) {}
+        try { if (txt_AddAmount != null) txt_AddAmount.setText(""); } catch (Exception ignored) {}
+        try { if (txt_AddPriceUnit != null) txt_AddPriceUnit.setText(""); } catch (Exception ignored) {}
+        try { if (txt_AddDatePurchase != null) txt_AddDatePurchase.setText(""); } catch (Exception ignored) {}
+        try { if (txt_ID_Delete != null) txt_ID_Delete.setText(""); } catch (Exception ignored) {}
+        try { if (txt_Search != null) txt_Search.setText(""); } catch (Exception ignored) {}
+    }
+
+}

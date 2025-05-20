@@ -1,0 +1,193 @@
+
+package main;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+
+import Utils.ThemeManager;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.util.prefs.Preferences;
+
+import other_windows.ClientsPanel;
+import other_windows.ExpensesPanel;
+import other_windows.PurchasesPanel;
+import other_windows.ReportsPanel;
+import other_windows.Settings;
+import other_windows.StockPanel;
+import other_windows.RRHHPanel;
+
+public class main_window extends JFrame {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JPanel centerPanel;
+
+    public main_window() {
+        setTitle("Panel Principal - Gestor de Empresa");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 1086, 600);
+        setLocationRelativeTo(null);
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBackground(new Color(245, 245, 255));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        setContentPane(contentPane);
+
+        addHeader();
+        addSidebar();
+        addCenterPanel();
+        addFooter();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("¡Bienvenido de nuevo!", SwingConstants.CENTER);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 24));
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+
+        // Panel derecho con los botones
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        buttonsPanel.setOpaque(false); // para que conserve fondo del header
+
+        // Botón de tema
+        JButton btnTema = new JButton("🌓");
+        btnTema.setFocusPainted(false);
+        btnTema.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        btnTema.setBackground(new Color(0, 91, 150));
+        btnTema.setForeground(Color.WHITE);
+        btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnTema.setPreferredSize(new Dimension(45, 35));
+        btnTema.setToolTipText("Cambiar tema claro/oscuro");
+
+        btnTema.addActionListener(e -> {
+            Preferences prefs = Preferences.userRoot().node("gestor360");
+            String tema = prefs.get("tema", "claro");
+
+            if (tema.equals("claro")) {
+                prefs.put("tema", "oscuro");
+                ThemeManager.aplicarTemaOscuro();
+            } else {
+                prefs.put("tema", "claro");
+                ThemeManager.aplicarTemaClaro();
+            }
+
+            // Reiniciar la ventana para aplicar el tema
+            SwingUtilities.getWindowAncestor(this).dispose();
+            main_window nuevaVentana = new main_window();
+            nuevaVentana.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            nuevaVentana.setVisible(true);
+        });
+
+        // Botón de ajustes
+        JButton btnSettings = new JButton("⚙ Ajustes");
+        btnSettings.setFocusPainted(false);
+        btnSettings.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnSettings.setBackground(new Color(0, 91, 150));
+        btnSettings.setForeground(Color.WHITE);
+        btnSettings.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnSettings.addActionListener(e -> {
+            new Settings().setVisible(true);
+        });
+
+        // Añadir ambos al panel derecho
+        buttonsPanel.add(btnTema);
+        buttonsPanel.add(btnSettings);
+        headerPanel.add(buttonsPanel, BorderLayout.EAST);
+
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+
+    private void addSidebar() {
+    	JPanel sidebar = new JPanel(new GridLayout(7, 1, 10, 10));
+        sidebar.setBackground(new Color(245, 247, 250));
+        sidebar.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        sidebar.add(createSidebarButton("🛒 Compras", () -> setMainContent(new PurchasesPanel(this))));
+        sidebar.add(createSidebarButton("💰 Gastos", () -> setMainContent(new ExpensesPanel(this))));
+        sidebar.add(createSidebarButton("📦 Stock", () -> setMainContent(new StockPanel(this))));
+        sidebar.add(createSidebarButton("👥 Clientes", () -> setMainContent(new ClientsPanel(this))));
+        sidebar.add(createSidebarButton("📨 Reportes", () -> setMainContent(new ReportsPanel(this))));
+        sidebar.add(createSidebarButton("👥 RRHH", () -> setMainContent(new RRHHPanel(this))));
+        
+        contentPane.add(sidebar, BorderLayout.WEST);
+    }
+
+    private void addCenterPanel() {
+        centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBackground(new Color(244, 246, 249));
+        centerPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+
+        // Cargamos el panel de noticias como contenido inicial
+        setMainContent(new MainPanelPlaceholder());
+
+        contentPane.add(centerPanel, BorderLayout.CENTER);
+    }
+
+
+    public void setMainContent(JPanel panel) {
+        centerPanel.removeAll();
+        centerPanel.add(panel, BorderLayout.CENTER);
+        centerPanel.revalidate();
+        centerPanel.repaint();
+    }
+
+    private void addFooter() {
+        JPanel footerPanel = new JPanel(new BorderLayout());
+        footerPanel.setBackground(new Color(230, 230, 230));
+        footerPanel.setBorder(new EmptyBorder(8, 15, 8, 15));
+
+        JLabel lblUser = new JLabel("👤 Usuario conectado: admin");
+        lblUser.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+
+        JLabel lblFechaHora = new JLabel();
+        lblFechaHora.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+        lblFechaHora.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        Timer timer = new Timer(1000, e -> {
+            lblFechaHora.setText("📅 " + java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm:ss")));
+        });
+        timer.start();
+
+        footerPanel.add(lblUser, BorderLayout.WEST);
+        footerPanel.add(lblFechaHora, BorderLayout.EAST);
+        contentPane.add(footerPanel, BorderLayout.SOUTH);
+    }
+
+    private JButton createSidebarButton(String text, Runnable action) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
+        button.setBackground(new Color(0, 91, 150));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(BorderFactory.createLineBorder(new Color(0, 91, 150)));
+        button.setPreferredSize(new Dimension(200, 48));
+        button.addActionListener(e -> action.run());
+
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(new Color(0, 70, 120));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(new Color(0, 91, 150));
+            }
+        });
+
+        return button;
+    }
+
+    public static void main(String[] args) {
+        EventQueue.invokeLater(() -> {
+            main_window frame = new main_window();
+            frame.setVisible(true);
+        });
+    }
+}

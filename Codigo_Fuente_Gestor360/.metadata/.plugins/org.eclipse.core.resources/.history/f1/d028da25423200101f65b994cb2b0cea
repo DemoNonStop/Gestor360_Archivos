@@ -1,0 +1,141 @@
+
+package other_windows;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import database.conecctionSQL;
+import main.main_window;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class StockPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField txt_ID, txt_Nombre, txt_Cantidad, txt_Search;
+    private main_window mainWindow;
+
+    public StockPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+        setLayout(new BorderLayout(10, 10));
+        setBackground(Color.WHITE);
+        setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        model = new DefaultTableModel();
+        model.setColumnIdentifiers(new String[]{"ID", "Nombre", "Cantidad"});
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Datos de Stock"));
+        formPanel.setBackground(Color.WHITE);
+
+        txt_ID = new JTextField();
+        txt_Nombre = new JTextField();
+        txt_Cantidad = new JTextField();
+
+        formPanel.add(new JLabel("ID:"));
+        formPanel.add(txt_ID);
+        formPanel.add(new JLabel("Nombre:"));
+        formPanel.add(txt_Nombre);
+        formPanel.add(new JLabel("Cantidad:"));
+        formPanel.add(txt_Cantidad);
+
+        JButton btnModificar = new JButton("✏ Modificar");
+        btnModificar.addActionListener(e -> modificarStock());
+        formPanel.add(btnModificar);
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setBackground(Color.WHITE);
+        txt_Search = new JTextField(20);
+        JButton btnSearch = new JButton("🔍 Buscar");
+        btnSearch.addActionListener(e -> buscarStock());
+
+        searchPanel.add(new JLabel("Buscar por nombre:"));
+        searchPanel.add(txt_Search);
+        searchPanel.add(btnSearch);
+
+        add(searchPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(formPanel, BorderLayout.SOUTH);
+
+        cargarStock();
+    }
+
+    private void cargarStock() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM stock")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getInt("cantidad")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar el stock", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void buscarStock() {
+        String filtro = txt_Search.getText().trim();
+        model.setRowCount(0);
+
+        String sql = "SELECT * FROM stock WHERE nombre LIKE ?";
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + filtro + "%");
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getInt("cantidad")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al buscar producto", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void modificarStock() {
+        try {
+            int id = Integer.parseInt(txt_ID.getText().trim());
+            String nombre = txt_Nombre.getText().trim();
+            int cantidad = Integer.parseInt(txt_Cantidad.getText().trim());
+
+            String sql = "UPDATE stock SET nombre=?, cantidad=? WHERE id=?";
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, nombre);
+                ps.setInt(2, cantidad);
+                ps.setInt(3, id);
+
+                int filas = ps.executeUpdate();
+                if (filas > 0) {
+                    JOptionPane.showMessageDialog(this, "Stock actualizado correctamente.");
+                    cargarStock();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró el producto con ese ID.", "Atención", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID o cantidad inválida", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al modificar el stock", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

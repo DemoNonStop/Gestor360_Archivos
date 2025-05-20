@@ -1,0 +1,158 @@
+
+package main;
+
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+
+import database.conecctionSQL;
+
+import java.awt.event.*;
+import java.sql.*;
+
+public class login_window extends JFrame {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTextField txt_nameAdmin;
+    private JPasswordField txt_passwd;
+
+    private static String currentUser;
+
+    public static void setCurrentUser(String user) {
+        currentUser = user;
+    }
+
+    public static String getCurrentUser() {
+        return currentUser;
+    }
+
+    public static void main(String[] args) {
+        EventQueue.invokeLater(() -> {
+            try {
+                login_window frame = new login_window();
+                frame.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public login_window() {
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 500, 600);
+        setLocationRelativeTo(null);
+
+        contentPane = new JPanel();
+        contentPane.setBackground(new Color(244, 246, 249));
+        contentPane.setBorder(new EmptyBorder(20, 20, 20, 20));
+        setContentPane(contentPane);
+        contentPane.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        contentPane.setBorder(BorderFactory.createCompoundBorder(
+                new EmptyBorder(25, 25, 25, 25),
+                BorderFactory.createLineBorder(new Color(220, 220, 220))
+        ));
+
+        JLabel title = new JLabel("🔐 Gestor 360", SwingConstants.CENTER);
+        title.setFont(new Font("Segoe UI Emoji", Font.BOLD, 28));
+        title.setForeground(new Color(0, 91, 150));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(10, 0, 20, 0);
+        contentPane.add(title, gbc);
+
+        JLabel subtitle = new JLabel("Inicia sesión como administrador");
+        subtitle.setForeground(Color.LIGHT_GRAY);
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridy = 1;
+        contentPane.add(subtitle, gbc);
+
+        JLabel lblUsuario = new JLabel("Nombre de usuario:");
+        lblUsuario.setForeground(new Color(90, 90, 90));
+        lblUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        gbc.gridy = 2;
+        gbc.insets = new Insets(30, 0, 5, 0);
+        contentPane.add(lblUsuario, gbc);
+
+        txt_nameAdmin = new JTextField();
+        txt_nameAdmin.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        txt_nameAdmin.setColumns(20);
+        gbc.gridy = 3;
+        gbc.insets = new Insets(5, 0, 20, 0);
+        contentPane.add(txt_nameAdmin, gbc);
+
+        JLabel lblPass = new JLabel("Contraseña:");
+        lblPass.setForeground(new Color(90, 90, 90));
+        lblPass.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        gbc.gridy = 4;
+        gbc.insets = new Insets(10, 0, 5, 0);
+        contentPane.add(lblPass, gbc);
+
+        txt_passwd = new JPasswordField();
+        txt_passwd.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        txt_passwd.setColumns(20);
+        gbc.gridy = 5;
+        gbc.insets = new Insets(5, 0, 30, 0);
+        contentPane.add(txt_passwd, gbc);
+
+        JButton btnLogin = new JButton("➡ Iniciar sesión");
+        btnLogin.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
+        btnLogin.setBackground(new Color(108, 99, 255));
+        btnLogin.setForeground(Color.WHITE);
+        btnLogin.setFocusPainted(false);
+        btnLogin.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnLogin.setPreferredSize(new Dimension(160, 40));
+        gbc.gridy = 6;
+        gbc.insets = new Insets(10, 0, 10, 0);
+        contentPane.add(btnLogin, gbc);
+        getRootPane().setDefaultButton(btnLogin);
+
+        btnLogin.addActionListener(e -> {
+            String user = txt_nameAdmin.getText().trim();
+            String pass = new String(txt_passwd.getPassword()).trim();
+
+            try (Connection conn = conecctionSQL.getConnection()) {
+                String query = "SELECT * FROM usuarios WHERE nombre_usuario = ? AND password = ?";
+                PreparedStatement ps = conn.prepareStatement(query);
+                ps.setString(1, user);
+                ps.setString(2, pass);
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    setCurrentUser(user);
+
+                    JDialog dialog = new JDialog(login_window.this, "Acceso concedido", false);
+                    dialog.setLayout(new BorderLayout());
+
+                    JLabel lbl = new JLabel("✅ Acceso concedido. Bienvenido, " + user + "!", SwingConstants.CENTER);
+                    lbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+                    lbl.setBorder(new EmptyBorder(20, 20, 20, 20));
+                    dialog.add(lbl, BorderLayout.CENTER);
+
+                    dialog.setSize(400, 120);
+                    dialog.setLocationRelativeTo(login_window.this);
+                    dialog.setUndecorated(true);
+                    dialog.setVisible(true);
+
+                    Timer timer = new Timer(1500, event -> {
+                        dialog.dispose();
+                        new main_window().setVisible(true);
+                        dispose();
+                    });
+                    timer.setRepeats(false);
+                    timer.start();
+
+                } else {
+                    JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error al conectar con la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+}

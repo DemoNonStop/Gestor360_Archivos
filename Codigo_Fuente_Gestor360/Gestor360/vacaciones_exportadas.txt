@@ -1,0 +1,7 @@
+------
+ID: 2
+Usuario: admin
+Inicio: 2025-12-12
+Fin: 2025-12-14
+Motivo: Vacaciones
+Fecha solicitud: 2025-05-16 18:20:18.0

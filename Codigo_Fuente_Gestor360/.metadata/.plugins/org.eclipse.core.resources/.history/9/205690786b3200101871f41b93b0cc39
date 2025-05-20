@@ -1,0 +1,435 @@
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import javax.swing.*;
+import javax.swing.border.*;
+
+import database.conecctionSQL;
+import main.MainPanelPlaceholder;
+import main.main_window;
+
+public class ReportsPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTextField txtAsunto;
+    private JTextArea txtDescripcion;
+    private JComboBox<String> cbCategoria, cbUrgencia;
+    private JList<String> listIncidencias;
+    private DefaultListModel<String> listModel;
+    private final ArrayList<String> incidencias = new ArrayList<>();
+    private final ArrayList<Integer> idsIncidencias = new ArrayList<>();
+    private main_window mainWindow;
+
+    public ReportsPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 245, 255));
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        contentPane.setBackground(new Color(245, 245, 255));
+        add(contentPane, BorderLayout.CENTER);
+
+        addHeader();
+        addMainPanel();
+        cargarIncidenciasDesdeBD();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("📨 Reportar Incidencia", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 22));
+        lblTitle.setForeground(Color.WHITE);
+
+        JButton btnBack = new JButton("← Volver");
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnBack.setBackground(new Color(0, 91, 150));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFocusPainted(false);
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.addActionListener(e -> mainWindow.setMainContent(new MainPanelPlaceholder()));
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnBack, BorderLayout.WEST);
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+    private void addMainPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(new Color(244, 246, 249));
+
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(new Color(244, 246, 249));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+
+        JLabel lblAsunto = new JLabel("Asunto:");
+        lblAsunto.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        gbc.gridy = 0;
+        formPanel.add(lblAsunto, gbc);
+
+        txtAsunto = new JTextField();
+        txtAsunto.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridy = 1;
+        formPanel.add(txtAsunto, gbc);
+
+        JLabel lblDescripcion = new JLabel("Descripción:");
+        lblDescripcion.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        gbc.gridy = 2;
+        formPanel.add(lblDescripcion, gbc);
+
+        txtDescripcion = new JTextArea(5, 20);
+        txtDescripcion.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtDescripcion.setLineWrap(true);
+        txtDescripcion.setWrapStyleWord(true);
+        JScrollPane scroll = new JScrollPane(txtDescripcion);
+        gbc.gridy = 3;
+        formPanel.add(scroll, gbc);
+
+        JLabel lblCategoria = new JLabel("Categoría:");
+        lblCategoria.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        gbc.gridy = 4;
+        formPanel.add(lblCategoria, gbc);
+
+        cbCategoria = new JComboBox<>(new String[]{
+            "General",
+            "Errores visuales",
+            "Problemas técnicos",
+            "Sugerencias",
+            "Errores de datos",
+            "Problemas de conexión",
+            "Error al guardar",
+            "Mejoras de usabilidad",
+            "Petición de nuevas funciones",
+            "Problemas de rendimiento"
+        });
+        cbCategoria.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridy = 5;
+        formPanel.add(cbCategoria, gbc);
+
+        JLabel lblUrgencia = new JLabel("Urgencia:");
+        lblUrgencia.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        gbc.gridy = 6;
+        formPanel.add(lblUrgencia, gbc);
+
+        cbUrgencia = new JComboBox<>(new String[]{"Baja", "Media", "Alta", "Crítica"});
+        cbUrgencia.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridy = 7;
+        formPanel.add(cbUrgencia, gbc);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(new Color(244, 246, 249));
+
+        JButton btnEnviar = new JButton("📤 Enviar");
+        btnEnviar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnEnviar.setBackground(new Color(0, 128, 255));
+        btnEnviar.setForeground(Color.WHITE);
+        btnEnviar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEnviar.setFocusPainted(false);
+        btnEnviar.setPreferredSize(new Dimension(140, 35));
+        btnEnviar.addActionListener(e -> enviarIncidencia());
+
+        JButton btnLimpiar = new JButton("🧹 Limpiar");
+        btnLimpiar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnLimpiar.setBackground(new Color(200, 0, 0));
+        btnLimpiar.setForeground(Color.WHITE);
+        btnLimpiar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnLimpiar.setFocusPainted(false);
+        btnLimpiar.setPreferredSize(new Dimension(140, 35));
+        btnLimpiar.addActionListener(e -> limpiarCampos());
+
+        JButton btnAdjuntar = new JButton("📎 Adjuntar");
+        btnAdjuntar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnAdjuntar.setBackground(new Color(0, 128, 255));
+        btnAdjuntar.setForeground(Color.WHITE);
+        btnAdjuntar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAdjuntar.setFocusPainted(false);
+        btnAdjuntar.setPreferredSize(new Dimension(140, 35));
+        btnAdjuntar.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                JOptionPane.showMessageDialog(this, "📎 Archivo adjuntado:\n" + selectedFile.getAbsolutePath(), "Adjunto añadido", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+        buttonPanel.add(btnEnviar);
+        buttonPanel.add(btnLimpiar);
+        buttonPanel.add(btnAdjuntar);
+
+        gbc.gridy = 8;
+        formPanel.add(buttonPanel, gbc);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        JPanel historialPanel = new JPanel(new BorderLayout(5, 5));
+        historialPanel.setBackground(new Color(244, 246, 249));
+        historialPanel.setBorder(BorderFactory.createTitledBorder("🗂 Incidencias Enviadas"));
+
+        listModel = new DefaultListModel<>();
+        listIncidencias = new JList<>(listModel);
+        JScrollPane scrollHistorial = new JScrollPane(listIncidencias);
+        historialPanel.add(scrollHistorial, BorderLayout.CENTER);
+
+        JPanel historialButtons = new JPanel(new GridLayout(1, 4, 5, 5));
+
+        JButton btnVer = new JButton("🔍 Ver");
+        btnVer.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnVer.setBackground(new Color(0, 128, 255));
+        btnVer.setForeground(Color.WHITE);
+        btnVer.setFocusPainted(false);
+        btnVer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnVer.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnVer.setBackground(new Color(0, 106, 212));
+            }
+            public void mouseExited(MouseEvent e) {
+                btnVer.setBackground(new Color(0, 128, 255));
+            }
+        });
+
+        JButton btnEliminar = new JButton("🗑 Eliminar");
+        btnEliminar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnEliminar.setBackground(new Color(200, 0, 0));
+        btnEliminar.setForeground(Color.WHITE);
+        btnEliminar.setFocusPainted(false);
+        btnEliminar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEliminar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnEliminar.setBackground(new Color(160, 0, 0));
+            }
+            public void mouseExited(MouseEvent e) {
+                btnEliminar.setBackground(new Color(200, 0, 0));
+            }
+        });
+
+        JButton btnActualizar = new JButton("🔄 Actualizar");
+        btnActualizar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnActualizar.setBackground(new Color(100, 100, 100));
+        btnActualizar.setForeground(Color.WHITE);
+        btnActualizar.setFocusPainted(false);
+        btnActualizar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnActualizar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnActualizar.setBackground(new Color(0, 128, 255));
+            }
+            public void mouseExited(MouseEvent e) {
+                btnActualizar.setBackground(new Color(0, 128, 255));
+            }
+        });
+        btnActualizar.addActionListener(e -> actualizarHistorial());
+
+        
+        JButton btnExportar = new JButton("📁 Exportar");
+        btnExportar.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnExportar.setBackground(new Color(56, 142, 60));
+        btnExportar.setForeground(Color.WHITE);
+        btnExportar.setFocusPainted(false);
+        btnExportar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnExportar.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                btnExportar.setBackground(new Color(38, 120, 45));
+            }
+            public void mouseExited(MouseEvent e) {
+                btnExportar.setBackground(new Color(56, 142, 60));
+            }
+        });
+
+        btnVer.addActionListener(e -> verIncidencia());
+        btnEliminar.addActionListener(e -> eliminarIncidencia());
+        btnExportar.addActionListener(e -> exportarIncidencias());
+
+        historialButtons.add(btnVer);
+        historialButtons.add(btnEliminar);
+        historialButtons.add(btnActualizar);
+        historialButtons.add(btnExportar);
+        historialPanel.add(historialButtons, BorderLayout.SOUTH);
+
+        mainPanel.add(historialPanel, BorderLayout.EAST);
+        contentPane.add(mainPanel, BorderLayout.CENTER);
+    }
+
+    private void enviarIncidencia() {
+        String asunto = txtAsunto.getText().trim();
+        String descripcion = txtDescripcion.getText().trim();
+        String categoria = (String) cbCategoria.getSelectedItem();
+        String urgencia = (String) cbUrgencia.getSelectedItem();
+
+        if (asunto.isEmpty() || descripcion.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, rellena todos los campos obligatorios.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("INSERT INTO reportes (asunto, descripcion, categoria, urgencia) VALUES (?, ?, ?, ?)")) {
+            ps.setString(1, asunto);
+            ps.setString(2, descripcion);
+            ps.setString(3, categoria);
+            ps.setString(4, urgencia);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "❌ Error al guardar en base de datos:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String resumen = "Asunto: " + asunto + " | Categoría: " + categoria + " | Urgencia: " + urgencia;
+        incidencias.add("ASUNTO: " + asunto + "\nDESCRIPCIÓN: " + descripcion + "\nCATEGORÍA: " + categoria + "\nURGENCIA: " + urgencia);
+        listModel.addElement(resumen);
+        limpiarCampos();
+
+        JOptionPane.showMessageDialog(this, "✅ Incidencia enviada correctamente.", "Enviado", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void limpiarCampos() {
+        txtAsunto.setText("");
+        txtDescripcion.setText("");
+        cbCategoria.setSelectedIndex(0);
+        cbUrgencia.setSelectedIndex(0);
+    }
+
+    private void verIncidencia() {
+        int index = listIncidencias.getSelectedIndex();
+        if (index != -1) {
+            int id = idsIncidencias.get(index);
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("SELECT asunto, descripcion, categoria, urgencia FROM reportes WHERE id_reporte = ?")) {
+
+                ps.setInt(1, id);
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    String asunto = rs.getString("asunto");
+                    String descripcion = rs.getString("descripcion");
+                    String categoria = rs.getString("categoria");
+                    String urgencia = rs.getString("urgencia");
+
+                    String mensaje = "ASUNTO: " + asunto +
+                                     "\nDESCRIPCIÓN: " + descripcion +
+                                     "\nCATEGORÍA: " + categoria +
+                                     "\nURGENCIA: " + urgencia;
+
+                    JOptionPane.showMessageDialog(this, mensaje, "📋 Detalles de la Incidencia", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "❗ No se encontró la incidencia en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "❌ Error al recuperar los datos:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Selecciona una incidencia para ver los detalles.", "Sin selección", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+
+    private void eliminarIncidencia() {
+        int index = listIncidencias.getSelectedIndex();
+        if (index != -1) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "¿Estás seguro de que deseas eliminar esta incidencia?",
+                    "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                int id = idsIncidencias.get(index);
+                try (Connection conn = conecctionSQL.getConnection();
+                     PreparedStatement ps = conn.prepareStatement("DELETE FROM reportes WHERE id_reporte = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, "❌ Error al eliminar de la base de datos:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Eliminamos de la interfaz
+                listModel.remove(index);
+                incidencias.remove(index);
+                idsIncidencias.remove(index);
+                JOptionPane.showMessageDialog(this, "✅ Incidencia eliminada correctamente.", "Eliminado", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } else {
+            JOptionPane.showMessageDialog(this, "Selecciona una incidencia para eliminar.", "Sin selección", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+
+    private void exportarIncidencias() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT id_reporte, asunto, descripcion, categoria, urgencia, fecha_envio FROM reportes");
+             ResultSet rs = ps.executeQuery();
+             PrintWriter writer = new PrintWriter("incidencias_exportadas.txt")) {
+
+            boolean hayRegistros = false;
+
+            while (rs.next()) {
+                hayRegistros = true;
+                writer.println("------");
+                writer.println("ID: " + rs.getInt("id_reporte"));
+                writer.println("FECHA: " + rs.getTimestamp("fecha_envio"));
+                writer.println("ASUNTO: " + rs.getString("asunto"));
+                writer.println("DESCRIPCIÓN: " + rs.getString("descripcion"));
+                writer.println("CATEGORÍA: " + rs.getString("categoria"));
+                writer.println("URGENCIA: " + rs.getString("urgencia"));
+            }
+
+            if (!hayRegistros) {
+                JOptionPane.showMessageDialog(this, "❗ No hay incidencias en la base de datos para exportar.", "Exportación vacía", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "📁 Exportado correctamente a incidencias_exportadas.txt", "Exportación exitosa", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "❌ Error al exportar:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    
+    private void cargarIncidenciasDesdeBD() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT id_reporte, asunto, descripcion, categoria, urgencia FROM reportes");
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id_reporte");
+                String asunto = rs.getString("asunto");
+                String descripcion = rs.getString("descripcion");
+                String categoria = rs.getString("categoria");
+                String urgencia = rs.getString("urgencia");
+
+                String resumen = "Asunto: " + asunto + " | Categoría: " + categoria + " | Urgencia: " + urgencia;
+                String detalle = "ASUNTO: " + asunto + "\nDESCRIPCIÓN: " + descripcion + "\nCATEGORÍA: " + categoria + "\nURGENCIA: " + urgencia;
+
+                listModel.addElement(resumen);
+                incidencias.add(detalle);
+                idsIncidencias.add(id); // <--- Guardamos el ID real de BD
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "❌ Error al cargar incidencias:\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void actualizarHistorial() {
+        listModel.clear();
+        incidencias.clear();
+        idsIncidencias.clear();
+        cargarIncidenciasDesdeBD();
+        JOptionPane.showMessageDialog(this, "🔄 Historial actualizado correctamente.", "Actualizado", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+
+}

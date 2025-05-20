@@ -1,0 +1,164 @@
+
+package other_windows;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import database.conecctionSQL;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class ProvidersPanel extends JPanel {
+
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField txt_Search, txt_ID, txt_Company, txt_Product, txt_NIF, txt_Phone, txt_Email;
+
+    public ProvidersPanel() {
+        setLayout(new BorderLayout(10, 10));
+        setBackground(Color.WHITE);
+        setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setBackground(Color.WHITE);
+
+        txt_Search = new JTextField(20);
+        JButton btnSearch = new JButton("🔍 Buscar");
+        btnSearch.addActionListener(e -> searchProvider());
+
+        topPanel.add(new JLabel("Buscar por empresa:"));
+        topPanel.add(txt_Search);
+        topPanel.add(btnSearch);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        model = new DefaultTableModel();
+        model.setColumnIdentifiers(new Object[]{"ID", "Empresa", "Producto", "NIF", "Teléfono", "Email"});
+        table = new JTable(model);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
+
+        JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
+        formPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
+        formPanel.setBackground(Color.WHITE);
+
+        txt_ID = new JTextField();
+        txt_Company = new JTextField();
+        txt_Product = new JTextField();
+        txt_NIF = new JTextField();
+        txt_Phone = new JTextField();
+        txt_Email = new JTextField();
+
+        formPanel.add(new JLabel("ID:"));
+        formPanel.add(txt_ID);
+        formPanel.add(new JLabel("Empresa:"));
+        formPanel.add(txt_Company);
+        formPanel.add(new JLabel("Producto:"));
+        formPanel.add(txt_Product);
+        formPanel.add(new JLabel("NIF:"));
+        formPanel.add(txt_NIF);
+        formPanel.add(new JLabel("Teléfono:"));
+        formPanel.add(txt_Phone);
+        formPanel.add(new JLabel("Email:"));
+        formPanel.add(txt_Email);
+
+        JButton btnModificar = new JButton("✏ Modificar");
+        btnModificar.addActionListener(e -> modificarProveedor());
+
+        formPanel.add(btnModificar);
+        add(formPanel, BorderLayout.SOUTH);
+
+        cargarProveedores();
+    }
+
+    private void cargarProveedores() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM proveedores")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nombre_empresa"),
+                    rs.getString("producto"),
+                    rs.getString("nif"),
+                    rs.getString("contacto_telefono"),
+                    rs.getString("contacto_email")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar proveedores", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void searchProvider() {
+        String empresa = txt_Search.getText().trim();
+        model.setRowCount(0);
+        if (empresa.isEmpty()) {
+            cargarProveedores();
+            return;
+        }
+
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT * FROM proveedores WHERE nombre_empresa LIKE ?")) {
+
+            ps.setString(1, "%" + empresa + "%");
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nombre_empresa"),
+                    rs.getString("producto"),
+                    rs.getString("nif"),
+                    rs.getString("contacto_telefono"),
+                    rs.getString("contacto_email")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error en la búsqueda", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void modificarProveedor() {
+        try {
+            int id = Integer.parseInt(txt_ID.getText().trim());
+            String empresa = txt_Company.getText().trim();
+            String producto = txt_Product.getText().trim();
+            String nif = txt_NIF.getText().trim();
+            String telefono = txt_Phone.getText().trim();
+            String email = txt_Email.getText().trim();
+
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE proveedores SET nombre_empresa=?, producto=?, nif=?, contacto_telefono=?, contacto_email=? WHERE id=?")) {
+
+                ps.setString(1, empresa);
+                ps.setString(2, producto);
+                ps.setString(3, nif);
+                ps.setString(4, telefono);
+                ps.setString(5, email);
+                ps.setInt(6, id);
+
+                int filas = ps.executeUpdate();
+                if (filas > 0) {
+                    JOptionPane.showMessageDialog(this, "Proveedor actualizado correctamente");
+                    cargarProveedores();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró el proveedor con ese ID");
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID inválido", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al actualizar", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

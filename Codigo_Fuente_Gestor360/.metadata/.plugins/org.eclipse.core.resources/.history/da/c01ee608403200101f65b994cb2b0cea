@@ -1,0 +1,159 @@
+
+package other_windows;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+import database.conecctionSQL;
+import main.main_window;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class PurchasesPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField txt_ID, txt_Product, txt_Amount, txt_UnitPrice, txt_Date, txt_Search;
+    private main_window mainWindow;
+
+    public PurchasesPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+        setLayout(new BorderLayout(10, 10));
+        setBackground(Color.WHITE);
+        setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Tabla
+        model = new DefaultTableModel();
+        model.setColumnIdentifiers(new String[]{"ID", "Producto", "Cantidad", "Precio", "Fecha"});
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        // Panel de formulario
+        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Datos de Compra"));
+        formPanel.setBackground(Color.WHITE);
+
+        txt_ID = new JTextField();
+        txt_Product = new JTextField();
+        txt_Amount = new JTextField();
+        txt_UnitPrice = new JTextField();
+        txt_Date = new JTextField();
+
+        formPanel.add(new JLabel("ID:"));
+        formPanel.add(txt_ID);
+        formPanel.add(new JLabel("Producto:"));
+        formPanel.add(txt_Product);
+        formPanel.add(new JLabel("Cantidad:"));
+        formPanel.add(txt_Amount);
+        formPanel.add(new JLabel("Precio Unitario:"));
+        formPanel.add(txt_UnitPrice);
+        formPanel.add(new JLabel("Fecha (YYYY-MM-DD):"));
+        formPanel.add(txt_Date);
+
+        JButton btnModify = new JButton("✏ Modificar");
+        btnModify.addActionListener(e -> modificarCompra());
+        formPanel.add(btnModify);
+
+        // Panel de búsqueda
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setBackground(Color.WHITE);
+        txt_Search = new JTextField(20);
+        JButton btnSearch = new JButton("🔍 Buscar");
+        btnSearch.addActionListener(e -> buscarCompra());
+
+        searchPanel.add(new JLabel("Buscar por producto:"));
+        searchPanel.add(txt_Search);
+        searchPanel.add(btnSearch);
+
+        add(searchPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(formPanel, BorderLayout.SOUTH);
+
+        cargarCompras();
+    }
+
+    private void cargarCompras() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM compras")) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_compra"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio_unitario"),
+                    rs.getDate("fecha_compra")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar los datos de compras", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void buscarCompra() {
+        String filtro = txt_Search.getText().trim();
+        model.setRowCount(0);
+
+        String sql = "SELECT * FROM compras WHERE producto LIKE ?";
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + filtro + "%");
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_compra"),
+                    rs.getString("producto"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio_unitario"),
+                    rs.getDate("fecha_compra")
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al buscar la compra", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void modificarCompra() {
+        try {
+            int id = Integer.parseInt(txt_ID.getText().trim());
+            String producto = txt_Product.getText().trim();
+            int cantidad = Integer.parseInt(txt_Amount.getText().trim());
+            double precio = Double.parseDouble(txt_UnitPrice.getText().trim());
+            String fecha = txt_Date.getText().trim();
+
+            String sql = "UPDATE compras SET producto=?, cantidad=?, precio_unitario=?, fecha_compra=? WHERE id_compra=?";
+            try (Connection conn = conecctionSQL.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, producto);
+                ps.setInt(2, cantidad);
+                ps.setDouble(3, precio);
+                ps.setString(4, fecha);
+                ps.setInt(5, id);
+
+                int filas = ps.executeUpdate();
+                if (filas > 0) {
+                    JOptionPane.showMessageDialog(this, "Compra modificada correctamente.");
+                    cargarCompras();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró la compra con ese ID.", "Atención", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "ID, cantidad o precio inválido", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al modificar la compra", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

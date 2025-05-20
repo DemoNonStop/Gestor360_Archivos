@@ -1,0 +1,121 @@
+package main;
+
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+
+import java.awt.event.*;
+
+public class login_window extends JFrame {
+
+	private static final long serialVersionUID = 1L;
+	private JPanel contentPane;
+	private JTextField txt_nameAdmin;
+	private JPasswordField txt_passwd;
+	public static String storedPassword = "admin123";
+
+	public static void main(String[] args) {
+		EventQueue.invokeLater(() -> {
+			try {
+				login_window frame = new login_window();
+				frame.setVisible(true);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+	}
+
+	public login_window() {
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 500, 600);
+		setLocationRelativeTo(null); // Centrar ventana
+
+		contentPane = new JPanel();
+		contentPane.setBackground(new Color(244, 246, 249)); // Gris claro
+		contentPane.setBorder(new EmptyBorder(20, 20, 20, 20));
+		setContentPane(contentPane);
+		contentPane.setLayout(new GridBagLayout());
+
+		GridBagConstraints gbc = new GridBagConstraints();
+
+		JLabel title = new JLabel("🔐 Gestor 360", SwingConstants.CENTER);
+		title.setForeground(new Color(0, 91, 150)); // Azul corporativo
+		title.setFont(new Font("Segoe UI Emoji", Font.BOLD, 28));
+		gbc.gridx = 0;
+		gbc.gridy = 0;
+		gbc.gridwidth = 2;
+		gbc.insets = new Insets(20, 0, 20, 0);
+		contentPane.add(title, gbc);
+
+		JLabel subtitle = new JLabel("Inicia sesión como administrador");
+		subtitle.setForeground(Color.LIGHT_GRAY);
+		subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+		gbc.gridy = 1;
+		contentPane.add(subtitle, gbc);
+
+		// Campo nombre
+		JLabel lblUsuario = new JLabel("Nombre de usuario:");
+		lblUsuario.setForeground(Color.WHITE);
+		lblUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+		gbc.gridy = 2;
+		gbc.gridwidth = 2;
+		gbc.insets = new Insets(30, 0, 5, 0);
+		contentPane.add(lblUsuario, gbc);
+
+		txt_nameAdmin = new JTextField();
+		txt_nameAdmin.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+		txt_nameAdmin.setColumns(20);
+		gbc.gridy = 3;
+		gbc.insets = new Insets(5, 0, 20, 0);
+		contentPane.add(txt_nameAdmin, gbc);
+
+		// Campo contraseña
+		JLabel lblPass = new JLabel("Contraseña:");
+		lblPass.setForeground(Color.WHITE);
+		lblPass.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+		gbc.gridy = 4;
+		gbc.insets = new Insets(10, 0, 5, 0);
+		contentPane.add(lblPass, gbc);
+
+		txt_passwd = new JPasswordField();
+		txt_passwd.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+		txt_passwd.setColumns(20);
+		gbc.gridy = 5;
+		gbc.insets = new Insets(5, 0, 30, 0);
+		contentPane.add(txt_passwd, gbc);
+
+		// Botón iniciar sesión
+		JButton btnLogin = new JButton("➡ Iniciar sesión");
+		btnLogin.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
+		btnLogin.setBackground(new Color(108, 99, 255)); // Morado elegante
+		btnLogin.setForeground(Color.WHITE);
+		btnLogin.setFocusPainted(false);
+		btnLogin.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		btnLogin.setPreferredSize(new Dimension(160, 40));
+		gbc.gridy = 6;
+		gbc.insets = new Insets(10, 0, 10, 0);
+		contentPane.add(btnLogin, gbc);
+
+		// Acción del botón
+		btnLogin.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String user = txt_nameAdmin.getText();
+				String pass = new String(txt_passwd.getPassword());
+
+				if (user.equalsIgnoreCase("admin") && pass.equals(storedPassword)) {
+					JOptionPane.showMessageDialog(null, "Acceso concedido. Bienvenido, " + user + "!");
+					main_window mainW = new main_window();
+					mainW.setVisible(true);
+					dispose(); // Cierra esta ventana
+				} else {
+					JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos", "Error", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+	}
+
+	public static void updatePassword(String nueva) {
+	    storedPassword = nueva;
+	}
+
+}

@@ -1,0 +1,33 @@
+package Utils;
+
+import java.awt.Color;
+
+public class ThemeManager {
+    public static Color fondoGeneral;
+    public static Color fondoPaneles;
+    public static Color textoPrincipal;
+    public static Color botonFondo;
+    public static Color botonTexto;
+    public static Color fondoTabla;
+    public static Color bordePanel;
+
+    public static void aplicarTemaClaro() {
+        fondoGeneral = new Color(245, 245, 255);
+        fondoPaneles = new Color(244, 246, 249);
+        textoPrincipal = new Color(33, 37, 41);
+        botonFondo = new Color(0, 128, 255);
+        botonTexto = Color.WHITE;
+        fondoTabla = Color.WHITE;
+        bordePanel = Color.LIGHT_GRAY;
+    }
+
+    public static void aplicarTemaOscuro() {
+        fondoGeneral = new Color(34, 34, 34);
+        fondoPaneles = new Color(45, 45, 45);
+        textoPrincipal = new Color(230, 230, 230);
+        botonFondo = new Color(88, 101, 242);
+        botonTexto = Color.WHITE;
+        fondoTabla = new Color(60, 60, 60);
+        bordePanel = new Color(80, 80, 80);
+    }
+}

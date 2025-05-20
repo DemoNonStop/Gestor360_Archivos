@@ -1,0 +1,209 @@
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import main.login_window;
+
+public class Settings extends JFrame {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JPasswordField txt_AntPasswd, txt_NewPasswd, txt_RepNewPasswd;
+
+    // Constructor normal
+    public Settings() {
+        this(false); // delega en el constructor extendido
+    }
+
+    // Constructor con parámetro maximized
+    public Settings(boolean maximized) {
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setBounds(100, 100, 500, 650);
+        setLocationRelativeTo(null);
+        setTitle("Configuración");
+        if (maximized) {
+            setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
+
+        contentPane = new JPanel();
+        contentPane.setBackground(new Color(244, 246, 249));
+        contentPane.setBorder(new EmptyBorder(25, 25, 25, 25));
+        setContentPane(contentPane);
+        contentPane.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.weightx = 0;
+
+        JLabel title = new JLabel("⚙ Configuración");
+        title.setForeground(new Color(0, 91, 150));
+        title.setFont(new Font("Segoe UI Emoji", Font.BOLD, 28));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(0, 0, 30, 0);
+        contentPane.add(title, gbc);
+
+        JLabel lblPassTitle = new JLabel("Cambiar contraseña");
+        lblPassTitle.setForeground(new Color(90, 90, 90));
+        lblPassTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 20, 0);
+        contentPane.add(lblPassTitle, gbc);
+
+        txt_AntPasswd = createPasswordField("Contraseña actual", gbc, 2);
+        txt_NewPasswd = createPasswordField("Nueva contraseña", gbc, 4);
+        txt_RepNewPasswd = createPasswordField("Repetir contraseña", gbc, 6);
+
+        JButton btnAplicar = createButton("Aplicar", gbc, 8);
+        btnAplicar.addActionListener(e -> aplicarConfiguracion());
+        getRootPane().setDefaultButton(btnAplicar);
+
+        JButton btnCancelar = createButton("Cancelar", gbc, 9);
+        btnCancelar.addActionListener(e -> {
+            new main.main_window(getExtendedState() == JFrame.MAXIMIZED_BOTH).setVisible(true);
+            dispose();
+        });
+
+        JButton btnCerrarSesion = createButton("🔓 Cerrar sesión", gbc, 10);
+        btnCerrarSesion.addActionListener(e -> {
+            for (Window window : Window.getWindows()) {
+                window.dispose();
+            }
+            new login_window().setVisible(true);
+        });
+    }
+
+    private JPasswordField createPasswordField(String placeholder, GridBagConstraints gbc, int gridy) {
+        JLabel lbl = new JLabel(placeholder);
+        lbl.setForeground(new Color(90, 90, 90));
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridy = gridy;
+        gbc.insets = new Insets(5, 0, 5, 0);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        contentPane.add(lbl, gbc);
+
+        JPasswordField field = new JPasswordField();
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        field.setPreferredSize(new Dimension(300, 35));
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        panel.setOpaque(false);
+        panel.add(field);
+
+        gbc.gridy = gridy + 1;
+        gbc.insets = new Insets(0, 0, 15, 0);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.CENTER;
+        contentPane.add(panel, gbc);
+
+        return field;
+    }
+
+    private JButton createButton(String text, GridBagConstraints gbc, int gridy) {
+        JButton btn = new JButton(text);
+        btn.setBackground(new Color(108, 99, 255));
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new Dimension(150, 35));
+        btn.setBorder(new RoundedBorder(15)); // Bordes redondeados
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(new Color(120, 110, 255));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(new Color(108, 99, 255));
+            }
+        });
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        panel.setOpaque(false);
+        panel.add(btn);
+
+        gbc.gridy = gridy;
+        gbc.insets = new Insets(20, 0, 15, 0);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.CENTER;
+        contentPane.add(panel, gbc);
+
+        return btn;
+    }
+
+    private void aplicarConfiguracion() {
+        String antigua = String.valueOf(txt_AntPasswd.getPassword());
+        String nueva = String.valueOf(txt_NewPasswd.getPassword());
+        String repetida = String.valueOf(txt_RepNewPasswd.getPassword());
+
+        if (antigua.isEmpty() || nueva.isEmpty() || repetida.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Todos los campos de contraseña son obligatorios", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!nueva.equals(repetida)) {
+            JOptionPane.showMessageDialog(this, "Las contraseñas nuevas no coinciden", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (nueva.length() < 8) {
+            JOptionPane.showMessageDialog(this, "La contraseña debe tener mínimo 8 caracteres", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!antigua.equals(login_window.storedPassword)) {
+            JOptionPane.showMessageDialog(this, "La contraseña actual no es correcta", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        login_window.updatePassword(nueva);
+
+        JDialog dialog = new JDialog(this, "Éxito", false);
+        dialog.setLayout(new BorderLayout());
+
+        JLabel lbl = new JLabel("🔒 Contraseña actualizada con éxito. Cerrando sesión...", SwingConstants.CENTER);
+        lbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        lbl.setBorder(new EmptyBorder(20, 20, 20, 20));
+        dialog.add(lbl, BorderLayout.CENTER);
+
+        dialog.setSize(420, 120);
+        dialog.setLocationRelativeTo(this);
+        dialog.setUndecorated(true);
+        dialog.setVisible(true);
+
+        Timer timer = new Timer(1500, e -> {
+            dialog.dispose();
+            for (Window window : Window.getWindows()) {
+                window.dispose();
+            }
+            new login_window().setVisible(true);
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    // Clase interna para bordes redondeados
+    private static class RoundedBorder extends javax.swing.border.AbstractBorder {
+        private final int radius;
+
+        public RoundedBorder(int radius) {
+            this.radius = radius;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(150, 150, 150));
+            g2.drawRoundRect(x, y, width - 1, height - 1, radius, radius);
+        }
+    }
+}

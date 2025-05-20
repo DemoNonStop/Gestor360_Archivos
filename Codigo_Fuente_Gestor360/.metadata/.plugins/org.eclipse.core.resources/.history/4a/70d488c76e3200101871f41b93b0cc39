@@ -1,0 +1,16 @@
+package other_windows;
+
+import javax.swing.JPanel;
+
+public class RRHHPanel extends JPanel {
+
+	private static final long serialVersionUID = 1L;
+
+	/**
+	 * Create the panel.
+	 */
+	public RRHHPanel() {
+
+	}
+
+}

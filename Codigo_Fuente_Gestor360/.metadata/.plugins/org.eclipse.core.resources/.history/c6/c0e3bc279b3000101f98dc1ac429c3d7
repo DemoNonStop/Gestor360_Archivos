@@ -1,0 +1,228 @@
+package other_windows;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
+import database.conecctionSQL;
+import main.main_window;
+import main.MainPanelPlaceholder;
+
+public class ClientsPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTable table_clients;
+    private DefaultTableModel model;
+    private JTextField txt_Add_ID, txt_AddName, txt_AddEdad, txt_AddDNI, txt_AddGenero, txt_AddEmail, txt_AddTelefono;
+    private main_window mainWindow;
+
+    public ClientsPanel(main_window mainWindow) {
+        this.mainWindow = mainWindow;
+
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 245, 255));
+
+        contentPane = new JPanel(new BorderLayout(10, 10));
+        contentPane.setBackground(new Color(245, 245, 255));
+        contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
+        add(contentPane, BorderLayout.CENTER);
+
+        addHeader();
+        addCenterPanel();
+        addSidebar();
+        loadClients();
+    }
+
+    private void addHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 128, 255));
+
+        JLabel lblTitle = new JLabel("👥 Gestión de Clientes", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("Segoe UI Emoji", Font.BOLD, 24));
+        lblTitle.setForeground(Color.WHITE);
+
+        JButton btnBack = new JButton("← Volver");
+        btnBack.setFocusPainted(false);
+        btnBack.setBackground(new Color(108, 99, 255));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.addActionListener(e -> mainWindow.setMainContent(new MainPanelPlaceholder()));
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnBack, BorderLayout.WEST);
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+    }
+
+    private void addCenterPanel() {
+        JPanel center = new JPanel(new BorderLayout(10, 10));
+        center.setBackground(new Color(244, 246, 249));
+
+        model = new DefaultTableModel(new String[]{"ID", "Nombre", "Edad", "DNI", "Género", "Email", "Teléfono"}, 0);
+        table_clients = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table_clients); // o table_providers
+        scrollPane.setPreferredSize(new Dimension(700, 300)); // Ajusta si deseas más altura
+        center.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel fieldsPanel = new JPanel(new GridBagLayout());
+        fieldsPanel.setBackground(new Color(244, 246, 249));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        String[] labels = {"ID:", "Nombre:", "Edad:", "DNI:", "Género:", "Email:", "Teléfono:"};
+        JTextField[] fields = {
+            txt_Add_ID = new JTextField(),
+            txt_AddName = new JTextField(),
+            txt_AddEdad = new JTextField(),
+            txt_AddDNI = new JTextField(),
+            txt_AddGenero = new JTextField(),
+            txt_AddEmail = new JTextField(),
+            txt_AddTelefono = new JTextField()
+        };
+
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridx = 0;
+            gbc.gridy = i;
+            gbc.weightx = 0.2;
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            fieldsPanel.add(lbl, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.8;
+            fields[i].setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            fields[i].setPreferredSize(new Dimension(200, 30));
+            fieldsPanel.add(fields[i], gbc);
+        }
+
+        JButton btnAdd = new JButton("➕ Añadir Cliente");
+        btnAdd.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnAdd.setBackground(new Color(0, 128, 255));
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAdd.setFocusPainted(false);
+        btnAdd.setPreferredSize(new Dimension(180, 35));
+        btnAdd.addActionListener(e -> addClient());
+
+        gbc.gridx = 0;
+        gbc.gridy = labels.length;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        fieldsPanel.add(btnAdd, gbc);
+
+        JButton btnDelete = new JButton("🗑 Eliminar");
+        btnDelete.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnDelete.setBackground(new Color(200, 0, 0));
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setFocusPainted(false);
+        btnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnDelete.setPreferredSize(new Dimension(150, 35));
+        btnDelete.addActionListener(e -> {
+            int selectedRow = table_clients.getSelectedRow();
+            if (selectedRow != -1) {
+                int confirm = JOptionPane.showConfirmDialog(this, "¿Deseas eliminar el cliente seleccionado?", "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    int id = (int) model.getValueAt(selectedRow, 0);
+                    try (Connection conn = conecctionSQL.getConnection();
+                         PreparedStatement ps = conn.prepareStatement("DELETE FROM clientes WHERE id = ?")) {
+                        ps.setInt(1, id);
+                        ps.executeUpdate();
+                        loadClients();
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(this, "Error al eliminar cliente", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Selecciona una fila para eliminar", "Sin selección", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        gbc.gridy++;
+        fieldsPanel.add(btnDelete, gbc);
+
+        JButton btnIrVentas = new JButton("📈 Ir a Proveedores");
+        btnIrVentas.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
+        btnIrVentas.setBackground(new Color(0, 91, 150));
+        btnIrVentas.setForeground(Color.WHITE);
+        btnIrVentas.setFocusPainted(false);
+        btnIrVentas.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnIrVentas.setPreferredSize(new Dimension(180, 35));
+        btnIrVentas.addActionListener(e -> mainWindow.setMainContent(new ProvidersPanel(mainWindow)));
+
+        gbc.gridy++;
+        fieldsPanel.add(btnIrVentas, gbc);
+
+        center.add(fieldsPanel, BorderLayout.EAST);
+        contentPane.add(center, BorderLayout.CENTER);
+    }
+
+    private void addSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setPreferredSize(new Dimension(150, 0));
+        sidebar.setBackground(new Color(245, 247, 250));
+        sidebar.setBorder(new EmptyBorder(10, 10, 10, 10));
+        contentPane.add(sidebar, BorderLayout.WEST);
+    }
+
+    private void loadClients() {
+        model.setRowCount(0);
+        try (Connection conn = conecctionSQL.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM clientes")) {
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getInt("edad"),
+                    rs.getString("dni"),
+                    rs.getString("genero"),
+                    rs.getString("email"),
+                    rs.getString("telefono")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addClient() {
+        try (Connection conn = conecctionSQL.getConnection();
+             PreparedStatement ps = conn.prepareStatement("INSERT INTO clientes (id, nombre, edad, dni, genero, email, telefono) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+
+            int id = Integer.parseInt(txt_Add_ID.getText().trim());
+            int edad = Integer.parseInt(txt_AddEdad.getText().trim());
+
+            ps.setInt(1, id);
+            ps.setString(2, txt_AddName.getText());
+            ps.setInt(3, edad);
+            ps.setString(4, txt_AddDNI.getText());
+            ps.setString(5, txt_AddGenero.getText());
+            ps.setString(6, txt_AddEmail.getText());
+            ps.setString(7, txt_AddTelefono.getText());
+
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Cliente agregado exitosamente");
+            loadClients();
+            clearFields();
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Verifica los campos numéricos: ID, Edad", "Error de formato", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void clearFields() {
+        txt_Add_ID.setText("");
+        txt_AddName.setText("");
+        txt_AddEdad.setText("");
+        txt_AddDNI.setText("");
+        txt_AddGenero.setText("");
+        txt_AddEmail.setText("");
+        txt_AddTelefono.setText("");
+    }
+}
